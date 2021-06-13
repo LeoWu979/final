@@ -16,7 +16,7 @@ volatile int steps;
 volatile int last;
 BBCar car(pin5, pin6, servo_ticker);
 
-Thread t1, t2, t3, t4;
+Thread t1, t2, t3, t4, t5;
 Timer t;
 
 
@@ -28,7 +28,8 @@ int kind = 2;
 int la = 0;
 char str1[45];
 char str2[20];
-int modify = 0, flag = 0;
+float ppp = 0.0;
+int modify = 0, flag = 0, back = 0, task = 0;
 
 void encoder_control() {
    int value = encoder;
@@ -40,11 +41,11 @@ void PPPping(void)
 {
    	float val;
 //   	pc.set_baud(9600);
-	xbee.set_baud(9600);
+	
 	char buff[25] = {0};
    	
 	while(1) {
-
+		
     	ping.output();
       	ping = 0; wait_us(200);
       	ping = 1; wait_us(5);
@@ -55,10 +56,11 @@ void PPPping(void)
       	t.start();
       	while(ping.read() == 1);
       	val = t.read();
+		ppp = val*17700.4f;
 //     	printf("Ping = %lf\r\n", val*17700.4f);
-		sprintf(buff, "dist %.2lf angle %.2f\r\n", val*17700.4f, send_angle);
+//		sprintf(buff, "dist %.2lf\r\n", val*17700.4f);
 //		printf(buff);
-		xbee.write(buff, sizeof(buff));
+//		xbee.write(buff, sizeof(buff));
       	t.stop();
       	t.reset();
 
@@ -70,7 +72,7 @@ void PPPping(void)
 
 void april()
 {
-	float dist, angle, Tx, Tz, tmp_angle, tTx, tTz;
+	float dist, angle, Tx, Tz, tmp_angle, tTx, tTz, c_angle;
 	int delay = 0, go = 0, d = 0, st = 0, der = 1;
 	int sign = 1;
 
@@ -115,7 +117,7 @@ void april()
 			if (str1[4] == '-') sign = -1;
 			if (str1[4] == '0') sign = 1;
 			Tx = sign * (10 * (int(str1[5]) - 48) + (int(str1[6]) - 48) + 0.1 * (int(str1[8]) - 48) + 0.01 * (int(str1[9]) - 48));
-			printf("%d\n",kind);
+//			printf("%d\n",kind);
 			if (Tx >= 0) {
 				
 				while ((Tx <= 1 && Tx >= -1) == false) {
@@ -156,7 +158,7 @@ void april()
 				steps = 0;
 				last = 0;
 				car.turn_new(50,50,0.85,1);
-			    while(steps*6.5*3.14/32 < (dist - 10 - 30)) {
+			    while(steps*6.5*3.14/32 < (dist - 10 - 40)) {
         			// printf("encoder = %d\r\n", steps);
         			ThisThread::sleep_for(100ms);			
 				}	
@@ -186,9 +188,13 @@ void april()
 				done = 1;
 				ThisThread::sleep_for(50ms);
 			}
-			if (str1[43] == '4' || str1[43] == '5') {
-				ThisThread::sleep_for(500ms);
-				if (angle > 300) {
+			if (str1[43] == '4') {
+				d = 0;
+				ThisThread::sleep_for(1500ms);
+				c_angle = angle;
+				if (angle > 300) c_angle = 360 - angle;
+
+				if (Tx < 0) {
 					delay = int((90 - (360 - angle))/90*1.0*1000);
 					car.turn_new(100, 100, 1, 0.1);
 
@@ -224,32 +230,37 @@ void april()
 					ThisThread::sleep_for(1200ms);
 
 					car.stop();
-					ThisThread::sleep_for(50ms);					
-				} 		
-				car.stop();
-				if (str1[43] == '5')
-					modify = 6;
-				else 
-					modify = 4;
-				
+					ThisThread::sleep_for(50ms);	
+					
+					
+
+				} 
+				modify = 4;
 				done = 1;
-				ThisThread::sleep_for(50ms);
-			}
+			}		
+				
+			if (str1[43] == '5' && modify == 2)
+				modify = 6;
+			
 		}
 			if (kind == 5) {
+				steps = 0;
+				last = 0;
 				ThisThread::sleep_for(500ms);
 				flag = 1;
 				car.turn_new(-50,-50,1,0.87);
-				while (dist <= 80) {
-					ThisThread::sleep_for(100ms);
-					dist = 100 * (int(str1[36]) - 48) + 10 * (int(str1[37]) - 48) + (int(str1[38]) - 48) + 0.1 * (int(str1[40]) - 48) + 0.01 * (int(str1[41]) - 48);	
-				}
+
+				while(steps*6.5*3.14/32 <= 90) {
+        			// printf("encoder = %d\r\n", steps);
+        			ThisThread::sleep_for(50ms);			
+				}	
 				car.stop();
 				ThisThread::sleep_for(100ms);
 				
 				car.turn_new(100,100,0.1,1);
-				ThisThread::sleep_for(1400ms);
+				ThisThread::sleep_for(1600ms);
 				car.stop();
+				back = 1;
 				ThisThread::sleep_for(50ms);
 				modify = 5;
 			}
@@ -433,7 +444,7 @@ void follow_line()
 
 while (1) {
 if (kind == 2) {
-	printf("%d\n",kind);
+//	printf("%d\n",kind);
 	if (str2[0] == 'A') {
 		x1 = 100 * (int(str2[1]) - 48) + 10 * (int(str2[2]) - 48) + (int(str2[3]) - 48);
 		y1 = 100 * (int(str2[5]) - 48) + 10 * (int(str2[6]) - 48) + (int(str2[7]) - 48);
@@ -474,10 +485,106 @@ if (kind == 2) {
 
 }
 
+void parking()
+{
+	int x1 = 0, y1 = 0, dist = 0, sign = 1;
+	float Tx = 0.0;
+
+while (1) {
+	if (modify == 6 && kind == 6) {
+		ThisThread::sleep_for(1000ms);
+		car.turn_new(100,100,0.1,1);
+		ThisThread::sleep_for(1300ms);
+		car.stop();
+		ThisThread::sleep_for(1000ms);
+		y1 = ppp;
+		ThisThread::sleep_for(100ms);
+		car.turn_new(-100,-100,0.1,1);
+		ThisThread::sleep_for(1000ms);
+		car.stop();			
+		dist = 100 * (int(str1[36]) - 48) + 10 * (int(str1[37]) - 48) + (int(str1[38]) - 48) + 0.1 * (int(str1[40]) - 48) + 0.01 * (int(str1[41]) - 48);
+		x1 = 30 - dist;
+		printf("y1 : %.2f x1 : %d", y1, x1);
+		ThisThread::sleep_for(1000ms);
+		modify = 7;
+	}
+
+if (kind == 7) {
+
+	ThisThread::sleep_for(1000ms);
+		
+
+/*			
+			if (str1[4] == '-') sign = -1;
+			if (str1[4] == '0') sign = 1;
+			Tx = sign * (10 * (int(str1[5]) - 48) + (int(str1[6]) - 48) + 0.1 * (int(str1[8]) - 48) + 0.01 * (int(str1[9]) - 48));
+//			printf("%d\n",kind);
+			if (Tx >= 0) {
+				
+				while ((Tx <= 1 && Tx >= -1) == false) {
+
+					car.turn_new(20, 20, 0.1, 1);
+					ThisThread::sleep_for(50ms);
+					if (str1[4] == '-') sign = -1;
+					if (str1[4] == '0') sign = 1;
+					Tx = sign * (10 * (int(str1[5]) - 48) + (int(str1[6]) - 48) + 0.1 * (int(str1[8]) - 48) + 0.01 * (int(str1[9]) - 48));
+				}
+				
+				car.stop();
+				ThisThread::sleep_for(50ms);
+			}			
+			else {
+				while ((Tx <= 1 && Tx >= -1) == false) {
+					car.turn_new(20, 20, 1, 0.1);
+					ThisThread::sleep_for(50ms);
+					if (str1[4] == '-') sign = -1;
+					if (str1[4] == '0') sign = 1;
+					Tx = sign * (10 * (int(str1[5]) - 48) + (int(str1[6]) - 48) + 0.1 * (int(str1[8]) - 48) + 0.01 * (int(str1[9]) - 48));
+				}
+				
+				car.stop();
+				ThisThread::sleep_for(50ms);
+			}
+*/			
+    steps = 0;
+    last = 0;
+    car.turn_new(-30, -30, 1, 0.84);
+    x1 = 15;
+	y1 = 12;
+	while(steps*6.5*3.14/32 < x1 - 2.5) {
+        // printf("encoder = %d\r\n", steps);
+        ThisThread::sleep_for(100ms);
+    }
+    car.stop();
+
+    car.turn(-100,0.1);
+    ThisThread::sleep_for(900ms);
+
+    car.stop();
+
+    steps = 0;
+    last = 0;
+    car.turn_new(-30, -30, 1, 0.84);
+
+    while(steps*6.5*3.14/32 < y1 + 12) {
+        // printf("encoder = %d\r\n", steps);
+        ThisThread::sleep_for(100ms);
+    }
+    car.stop();
+	modify = 8;
+	ThisThread::sleep_for(200ms);
+}
+	ThisThread::sleep_for(100ms);
+}
+
+
+}
+
 
 void control_center()
 {
-	
+	char buff[15] = {0};
+	xbee.set_baud(9600);
 	while(1) {
 		if (str1[0] == 'A' && str2[0] == 'B') {
 			if ((la == 2 || la == 0 || la == 5) && !done) {
@@ -503,12 +610,40 @@ void control_center()
 			kind = 4;
 		if (modify == 4 && !flag) 
 			kind = 5;
-		if (modify == 5) 
+		if (modify == 5 && back) {
+			back = 0;
 			done = 0;
+			modify = 0;
+		}
+		if (modify == 6)
+			kind = 6;
+		if (modify == 7)
+			kind = 7;
+		if (modify == 8)
+			kind = 8;
 		
-
+		if (kind == 3 && modify == 0 && la == 2) {
+			sprintf(buff, "Line Complete\r\n");
+			xbee.write(buff,sizeof(buff));
+		} 
+		if ((kind == 4 && modify == 0 && la == 1) || (kind == 6 && modify == 2 && la == 1)) {
+			sprintf(buff, "Apri Complete\r\n");
+			xbee.write(buff,sizeof(buff));
+		}
+		if (kind == 1 && modify == 5 && la == 5) {
+			sprintf(buff, "back Complete\r\n");
+			xbee.write(buff,sizeof(buff));
+		} 		 		
+		if (kind == 3 && modify == 0 && la == 2) {
+			sprintf(buff, "Line Complete\r\n");
+			xbee.write(buff,sizeof(buff));
+		} 
+		if (kind == 8 && modify == 8 && la == 7) {
+			sprintf(buff, "Park Complete\r\n");
+			xbee.write(buff,sizeof(buff));
+		} 
 			
-		printf("last : %d kind : %d\n", la, kind);
+//		printf("last : %d kind : %d modify : %d flag : %d\n", la, kind, modify, flag);
 		la = kind;
 		ThisThread::sleep_for(100ms);
 	}
@@ -526,6 +661,7 @@ int main(void) {
 	t2.start(april);
 	t3.start(PPPping);
 	t4.start(control_center);
+	t5.start(parking);
 	while(1){
 		if(uart.readable()){
             char recv[1];
