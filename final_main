@@ -1,0 +1,77 @@
+# Untitled - By: leous - 週五 六月 11 2021
+import pyb, sensor, image, time, math, os, tf
+
+enable_lens_corr = False
+sensor.reset()
+sensor.set_pixformat(sensor.GRAYSCALE)
+sensor.set_framesize(sensor.QQVGA) # we run out of memory if the resolution is much bigger...
+sensor.skip_frames(time = 2000)
+sensor.set_auto_gain(False)  # must turn this off to prevent image washout...
+sensor.set_auto_whitebal(False)  # must turn this off to prevent image washout...
+clock = time.clock()
+threshold_val = (0,45)
+
+net = "trained.tflite"
+labels = [line.rstrip('\n') for line in open("labels.txt")]
+ind = 0
+
+f_x = (2.8 / 3.984) * 160 # find_apriltags defaults to this if not set
+f_y = (2.8 / 2.952) * 120 # find_apriltags defaults to this if not set
+c_x = 160 * 0.5 # find_apriltags defaults to this if not set (the image.w * 0.5)
+c_y = 120 * 0.5 # find_apriltags defaults to this if not set (the image.h * 0.5)
+
+def degrees(radians):
+   return (180 * radians) / math.pi
+
+uart = pyb.UART(3,9600,timeout_char=1000)
+uart.init(9600,bits=8,parity = None, stop=1, timeout_char=1000)
+done = 0
+li = 0
+
+while(True):
+    clock.tick()
+    img = sensor.snapshot()
+    # default settings just do one detection... change them to search the image...
+    for obj in tf.classify(net, img, min_scale=1.0, scale_mul=0.8, x_overlap=0.5, y_overlap=0.5):
+#        print("**********\nPredictions at [x=%d,y=%d,w=%d,h=%d]" % obj.rect())
+        img.draw_rectangle(obj.rect())
+        # This combines the labels and confidence values into a list of tuples
+        predictions_list = list(zip(labels, obj.output()))
+
+        for i in range(len(predictions_list)):
+            if predictions_list[i][1] >= 0.9:
+                ind = i
+        print("%s" %(predictions_list[ind][0]))
+
+
+    for tag in img.find_apriltags(fx=f_x, fy=f_y, cx=c_x, cy=c_y): # defaults to TAG36H11
+        done = 1
+        img.draw_rectangle(tag.rect(), color = (255, 0, 0))
+        img.draw_cross(tag.cx(), tag.cy(), color = (0, 255, 0))
+        # The conversion is nearly 6.2cm to 1 -> translation
+        distance = (tag.x_translation() ** 2 + tag.z_translation() ** 2) ** 0.5
+        distance = distance * 6.2
+        print_args = (tag.x_translation(), tag.z_translation(),degrees(tag.y_rotation()) \
+        , distance, tag.id(), predictions_list[ind][0])
+        # Translation units are unknown. Rotation units are in degrees.
+        uart.write(("ATx %06.2f Tz %06.2f Ry %06.2f dist %06.2f %d %sC" % print_args).encode())
+        print("Tx %06.2f Tz %06.2f Ry %06.2f dist %06.2f %d %s" % print_args)
+    if done == 0 :
+        uart.write(("B%sC" %predictions_list[ind][0]).encode())
+        print("No apriltag")
+#    time.sleep(0.2)
+    img2 = sensor.snapshot().binary([threshold_val])
+    if enable_lens_corr: img2.lens_corr(1.8) # for 2.8mm lens...
+    l = img2.get_regression([(255,255)], roi = (10,0,160,45), robust = True)
+
+    if l and l.magnitude() > 8 :
+        img2.draw_line(l.line(), color = 127)
+        print_args2 = (l.x1(), l.y1(), l.x2(), l.y2())
+        uart.write(("A%03d %03d %03d %03dE" % print_args2).encode())
+        print(l.line())
+    else :
+        uart.write(("BE").encode())
+#   uart.write(("FPS %f\r\n" % clock.fps()).encode())
+    done = 0
+
+    time.sleep(0.1)
