@@ -500,7 +500,7 @@ void control_center()
 			sprintf(buff, "Line Complete\r\n");
 			xbee.write(buff,sizeof(buff));
 		} 
-		if ((kind == 4 && modify == 2 && la == 1) || (kind == 5 && modify == 4 && la == 1)) {
+		if ((kind == 4 && modify == 2 && la == 1) || (kind == 5 && modify == 4 && la == 1) || (kind == 4 && modify == 3)) {
 			sprintf(buff, "Apri Complete\r\n");
 			xbee.write(buff,sizeof(buff));
 		}
