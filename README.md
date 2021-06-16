@@ -7,10 +7,10 @@
 - encoder : D11<br>
 - continuous servo : D5、D6<br>
 
-### File<br>
-- main.cpp for all operating function<br>
-- xbee.py for receive information from xbee<br>
-- final_main.py for my openMV code<br>
+### File description<br>
+- `main.cpp` for all operating function<br>
+- `xbee.py` for receive information from xbee<br>
+- `final_main` for my openMV code<br>
 
 ### My design<br>
 1. Follow the line first.<br>
