@@ -7,6 +7,11 @@
 - encoder : D11<br>
 - continuous servo : D5、D6<br>
 
+### File<br>
+- main.cpp for all operating function<br>
+- xbee.py for receive information from xbee<br>
+- final_main.py for my openMV code<br>
+
 ### My design<br>
 1. Follow the line first.<br>
 2. Navigation by apriltag.<br>
@@ -41,5 +46,5 @@
 ![S__41484311](https://user-images.githubusercontent.com/79573591/122201909-1ae99580-cecf-11eb-89ff-465a84f58947.jpg)
 - image classification<br>
 ![S__41484312](https://user-images.githubusercontent.com/79573591/122201933-1f15b300-cecf-11eb-9ce1-013cb23c3085.jpg)
-- get information of xbee<br>
+- receive information of xbee<br>
 ![S__41484313](https://user-images.githubusercontent.com/79573591/122201942-20df7680-cecf-11eb-90d0-ab50b834510b.jpg)
