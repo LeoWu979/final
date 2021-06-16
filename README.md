@@ -27,19 +27,19 @@
 - openMV processing<br>
 
 ### Some Result<br>
-- Line following and april tag location identification
+- Line following and april tag location identification<br>
 ![S__41484305](https://user-images.githubusercontent.com/79573591/122201845-0a391f80-cecf-11eb-90fc-55efd514248e.jpg)
-- Line following and april tag location identification
+- Line following and april tag location identification<br>
 ![S__41484307](https://user-images.githubusercontent.com/79573591/122201866-0e653d00-cecf-11eb-984d-752cc15f5148.jpg)
-- Start go back
+- Start go back<br>
 ![S__41484308](https://user-images.githubusercontent.com/79573591/122201880-11f8c400-cecf-11eb-9d04-31900387ab13.jpg)
-- April tag location identifiaction
+- April tag location identifiaction<br>
 ![S__41484309](https://user-images.githubusercontent.com/79573591/122201883-13c28780-cecf-11eb-812c-a08047aa7d18.jpg)
-- Ping distance detection
+- Ping distance detection<br>
 ![S__41484310](https://user-images.githubusercontent.com/79573591/122201899-17eea500-cecf-11eb-8c1d-dd8ba3d4fd59.jpg)
-- Parking
+- Parking<br>
 ![S__41484311](https://user-images.githubusercontent.com/79573591/122201909-1ae99580-cecf-11eb-89ff-465a84f58947.jpg)
-- image classification
+- image classification<br>
 ![S__41484312](https://user-images.githubusercontent.com/79573591/122201933-1f15b300-cecf-11eb-9ce1-013cb23c3085.jpg)
-- get information of xbee
+- get information of xbee<br>
 ![S__41484313](https://user-images.githubusercontent.com/79573591/122201942-20df7680-cecf-11eb-90d0-ab50b834510b.jpg)
